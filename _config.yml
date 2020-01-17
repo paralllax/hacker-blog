@@ -3,9 +3,9 @@ description: "A Jekyll Blog Theme For Hackers"
 author:
   name: "SomeHacker"
   email: "someone@somewebsite.somedomain"
-  url: "https://ashishchaudhary.in/hacker-blog"
+  url: "paralllax.github.io"
 
-baseurl: /
+baseurl: /hacker-blog
 
 source: .
 destination: ./_site
