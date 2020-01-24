@@ -31,5 +31,7 @@ plugins:
 owner : "TerminalBlues"
 year : "2020"
 
+google_analytics: UA-156898630-1
+
 # Exclude list
 exclude: [README.md, Gemfile, Gemfile.lock, node_modules, gulpfile.js, package.json, _site, src, vendor, CNAME, LICENSE, Rakefile, old]
