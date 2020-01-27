@@ -132,11 +132,12 @@ Arch:   sudo pacman -Sy jq
     -   /bin/yum install epel-release -y
     -   /bin/yum install sslh -y
     -   /bin/firewall-cmd --add-port=25565/tcp --permanent --zone=public
+    -   /bin/firewall-cmd --add-port=25565/udp --permanent --zone=public
     -   /bin/firewall-cmd --add-service=ssh --permanent --zone=public
     -   /bin/firewall-cmd --reload
     -   /bin/semanage port -a -t http_port_t -p tcp 25565
     -   /bin/sed -i 's/\(^ExecStart=\/usr\/sbin\/sslh\).*/\1 --user sslh --listen 0.0.0.0:25565 --anyprot {HOST IP HERE}:60000 --pidfile /var/run/sslh.pid' /usr/lib/systemd/system/sslh.service
-    -   /bin/sed -i 's/\(^#Environ.*\)/#\1/' /usr/lib/systemd/system/sslh.service
+    -   /bin/sed -i 's/\(^Environ.*\)/#\1/' /usr/lib/systemd/system/sslh.service
     -   /bin/systemctl daemon-reload
     -   /bin/systemctl enable sslh
     -   /bin/systemctl start sslh
@@ -165,7 +166,7 @@ $ oci compute instance list-vnics --instance-id ${SI_ID} | jq -r '.data[]."publi
 
 Cloudflare is a CDN (Content Delivery Network). A CDN is a large distributed network of servers around the globe. They provide several advantages for hosting content, such as caching static images, reducing bandwidth, hides the origin IP and more. In this case however, most of those features will be overlooked as cloudflare doesn't support games unless you are willing to shell out a lot of $$. As such, we have configured a proxy host in the previous steps.
 
-We will be adding an SRV record, which has the draw back of revealing your origin IP. However, this will be sent to our cloud server, which will proxy the traffic back to our actual minecraft server. The main reason for adding the record with cloudflare is it should get rid of any potential beginner script kiddies as cloudflare will stop DDOS attacks with it's free tier. Most cloud providers also offer the same. The two combined, considering they are free, add a little more security and the benefit of allowing clients to connect directly over a domain name and resolve, instead of directly via an IP address and port. Since the traffic will be proxied through the cloud sever, no one should ever get your true public IP.
+We will be adding an SRV record, which has the draw back of revealing your origin IP. However, this will be sent to our cloud server, which will proxy the traffic back to our actual minecraft server. The main reason for adding the record with cloudflare is it should get rid of any potential beginner script kiddies as cloudflare will stop DDOS attacks with it's free tier. For clarification, cloudflare's purpose here is more for obfuscation at a DNS level. It also has the benefit, if you do have a site attached to the A Record, of applying it's main benefits there. The DDoS protection for your minecraft server will be covered by Oracle's Cloud Infrastructure. If you are using AWS, the equivalent would be AWS Shield. Both of these services are baked in and auto apply when you spinup any instances, there is no configuration necessary. The two combined (cloudflare + reverse proxy), considering they are free, add a little more security and the benefit of allowing clients to connect directly over a domain name and resolve, instead of directly via an IP address and port. Since the traffic will be proxied through the cloud sever, no one should ever get your true public IP.
 
 Sign up with CloudFlare [here](https://dash.cloudflare.com/sign-up)
 
@@ -207,9 +208,26 @@ The last step will be to add a port forward on your router. In most cases, your 
 
 ```bash
 Name: Minecraft
-From: <Public IPv4 address of your Cloud Server>
-Port: 60000
+Source: <Public IPv4 address of your Cloud Server>
+Srouce Port: 60000
 Dest IP/Port: <Private IP of your Minecraft Server>:25565
+```
+
+Note - depending on your router, it may need an additional firewall rule added to prevent people from connecting to your source IP (should ever accidentally leak it). I am currently using an Ubiquiti USG, which will auto add the whitelist for the portforward. If you are renting a router from your ISP, you will likely need to add one. In the same `Routing & Firewall` section, there will be a section for adding firewall rules. You would use the information from the above to fill out the section in adding a new rule. If for some reason there is no such capability on your router, you can add this as a rule on the server itself. Here are some linux examples, note that you would change the 'xxx.xxx.xxx.xxx' with your cloud server IP address.
+
+```bash
+Firewalld: 
+$ sudo firewall-cmd --permanent --zone=public --add-rich-rule='rule family="ipv4" source address="xxx.xxx.xxx.xxx/32" port protocol="tcp" port="25565" accept' 
+$ sudo firewall-cmd --permanent --zone=public --add-rich-rule='rule family="ipv4" source address="xxx.xxx.xxx.xxx/32" port protocol="udp" port="25565" accept' 
+$ sudo firewall-cmd --reload
+
+Iptables: 
+$ sudo iptables -I INPUT -p tcp -s xxx.xxx.xxx.xxx/32 --dport 25565 -j DROP
+$ sudo iptables -I INPUT -p udp -s xxx.xxx.xxx.xxx/32 --dport 25565 -j DROP
+
+UFW:
+$ sudo ufw allow from xxx.xxx.xxx.xxx/32 proto tcp to any port 25565
+$ sudo ufw allow from xxx.xxx.xxx.xxx/32 proto udp to any port 25565
 ```
 
 Once that is set, and DNS has been pulled across to all other resolvers, you should be good to go. Go into minecraft, enter your domain name into the server connect address, and have fun!
