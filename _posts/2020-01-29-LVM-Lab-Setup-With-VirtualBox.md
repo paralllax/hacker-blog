@@ -4,7 +4,7 @@ published: true
 ---
 
 * * *
-This guide assumes you have a VM setup on virtualbox with a linux distrobution as the host and LVM installed. This guide will show you how to add and expand virtual disks to your VM and examples of how to add them to filesystems with LVM. The purpose of this is for setting up a way to practice with partitioning and LVM in a safe manner without destroying any personal data. Please note if you are not careful, you can erase the data on the VM. If you are worried about such an event, please be certain to take a snapshot prior. 
+This guide assumes you have a VM setup on virtualbox with a linux distribution as the host and LVM installed. This guide will show you how to add and expand virtual disks to your VM and examples of how to add them to filesystems with LVM. The purpose of this is for setting up a way to practice with partitioning and LVM in a safe manner without destroying any personal data. Please note if you are not careful, you can erase the data on the VM. If you are worried about such an event, please be certain to take a snapshot prior. 
 
 *If you have not setup a VM yet, feel free to watch my guide* [here](https://www.youtube.com/watch?v=qfBAU86C4qM).
 
@@ -20,9 +20,9 @@ The guide will go as follows:
 
 If you are unfamiliar with Logical Volume Management (LVM), it is another way to abstract the storage of a device. LVM comes with a lot of benefits, snapshotting, datamigration, resizing, and more. It provides a very flexible way of managing disks online. LVM is built in three layers, physical volumes, volume groups, and logical volumes. 
 
-* * *
-
 ### [](#header-snapshot)Take a Snapshot<a name="snapshot"></a>
+
+* * *
 
 Let's get right into it. For the lab, in order to attach and detach disks, the VM needs to be powered off. Please be certain your VM is powered off now. First you will need to run powershell as an administrator. Hit the windows key, type in powershell, right click it, and run it as administrator as per below. Note that the path to the binary for VBoxManage will vary depending on the directory you installed Virtual Box. Using tab to autocomplete is very handy, and will work in powershell. 
 
@@ -49,11 +49,11 @@ Restoring snapshot 'original_predisk_01' (000af2d3-f63e-44f7-b682-9b69306c3aa4)
 PS C:\>
 ```
 
-* * *
-
 ### [](#header-create)Create & Attach the Virtual Disk<a name="attach"></a>
 
-With a restore point in hand, we can go ahead and jump into creating the vdisk. In the terminal we will create and attach another disk. This first command will create a 15G virtual disk. The second command will attach the disk to you VM. You may need to adjust the location of where to create the vmdk. You can put it anywhere you like. I would suggset creating a dedicated folder. I've pasted them below along with the output. Note that if came back here after restoring from a snapshot, you only need to run the second command. 
+* * *
+
+With a restore point in hand, we can go ahead and jump into creating the vdisk. In the terminal we will create and attach another disk. This first command will create a 15G virtual disk. The second command will attach the disk to your VM. You may need to adjust the location of where to create the vmdk. You can put it anywhere you like. I would suggest creating a dedicated folder. I've pasted them below along with the output. Note that if came you back here after restoring from a snapshot, you only need to run the second command. 
 
 ```
 PS C:\> & 'K:\Program Files (x86)\Virtualbox\VBoxManage' createhd --filename K:\VMs\vdisks\vdisk-tutorial-01.vmdk --size 15000 --format VMDK
@@ -63,11 +63,11 @@ PS C:\> & 'K:\Program Files (x86)\Virtualbox\VBoxManage' storageattach tutorial 
 PS C:\>
 ```
 
-* * *
-
 ### [](#header-part)Partition the Virtual Disk<a name="partition"></a>
 
-1. Power on your device now and launch a terminal. My terminal emulator's of choice are terminator or urxvt. Any terminal emulator will suffice. When you login, you should be able to see the new device as /dev/sdb. If multiple disks have been added, this would show up as the next alphabetical letter. You can view this with the command `lsblk` which shows block devices. 
+* * *
+
+1. Power on your device now and launch a terminal. My terminal emulators of choice are terminator or urxvt. Any terminal emulator will suffice. When you login, you should be able to see the new device as /dev/sdb. If multiple disks have been added, this would show up as the next alphabetical letter. You can view this with the command `lsblk` which shows block devices. If you are using a different method of virtualization, and did not need to reboot, but the disk did not show up, you can run the following command: `for host in $(ls /sys/class/scsi_host/*/scan); do echo "- - -" > ${host}; done` - If you are using ASM disks, or mulipathing for SAN/NAS, you may need to scan for the paths individually instead of all of them, as it can cause issues.
 
     ```
     [terminal_blues@localhost ~]$ lsblk
@@ -80,7 +80,7 @@ PS C:\>
     sdb                               8:16   0 14.7G  0 disk 
     ```
 
-2. Next we are going to hop into the parted cli. parted can be scripted, but for the intents of the guide. One thing to note, parted will write changes immediately, instead of after confirmation at the end, which tools such as fdisk. Be certain to take care in what you type/paste. As we are using a blank device and using snapshots, there is not too much to worry, but when working with real data, take extra caution. 
+2. Next we are going to hop into the parted cli. parted can be scripted, but for the intents of the guide we will hop into the shell. One thing to note, parted will write changes immediately, instead of after confirmation at the end with tools such as fdisk. Be certain to take care in what you type/paste. As we are using a blank device and using snapshots/clones, there is not too much to worry, but when working with real data, take extra caution. 
 
     ```
     [terminal_blues@localhost ~]$ sudo parted /dev/sdb
@@ -121,7 +121,7 @@ PS C:\>
 
 * We also don't need to specify the `fs-type`. You can if you would like. Adding it usually adds a byte of data that boot loaders can preview. 
 
-* 2048s (1MiB) - This is the start sector, it will always be 2048s. 
+* 2048s (1MiB) - This is the start sector, it will always be 2048s, but only for the first partition.
 
 * 5GiB/10GiB - This is the space in gigabytes that we allocate to/from.
 
@@ -173,7 +173,7 @@ PS C:\>
 
 * * *
 
-1. First, gather information on your existing setup to check if you want to add the space to an existing group, or create new ones.As shown below, we have our original disk, group, and a logical volume for the `/` filesystem and `swap`. The three commands below give a summary of each group, the physical volumes, the voluem groups, and logical volumes. We will build new ones with our space we have added. Later I will show you expanding vs creating new. 
+1. First, gather information on your existing setup to check if you want to add the space to an existing group, or create new ones. As shown below, we have our original disk, group, and a logical volume for the `/` filesystem and `swap`. The three commands below give a summary of each group, the physical volumes, the volume groups, and logical volumes. We will build new ones with our space we have added. Later I will show you expanding vs creating new. 
 
     ```
     [terminal_blues@localhost ~]$ sudo pvs
@@ -204,7 +204,7 @@ PS C:\>
       /dev/sdb3                        lvm2 a--    4.64g  4.64g
     ```
 
-2. Next we will create a new volume group, it may be easier to think of it of more as a storage pool, partitions and other disks can be stitched together and added here. As a note, you should never mix the underlying datastores in volume groups. In other words, if you have a virtual disk /dev/sdb from one hard drive, and /dev/sdc from another, they should not go into the same voluem group as the filesystem will then write to different disks, and may have severe I/O issues. You can add as many disks from the physical volumes as you would like. 
+2. Next we will create a new volume group, it may be easier to think of it of more as a storage pool, partitions and other disks can be stitched together and added here. As a note, you should never mix the underlying datastores in volume groups. In other words, if you have a virtual disk /dev/sdb from one hard drive, and /dev/sdc from another, they should not go into the same volume group as the filesystem will then write to different disks, and may have severe I/O issues. You can add as many disks from the physical volumes as you would like. 
 
     ```
     [terminal_blues@localhost ~]$ sudo vgcreate vglocal00 /dev/sdb1 /dev/sdb2 /dev/sdb3
@@ -243,7 +243,7 @@ PS C:\>
     [terminal_blues@localhost ~]$ sudo mkdir /data /terminal /blues
     ```
 
-2. Create the filesystems. Here we specify the path to the logical volume. 
+2. Create the filesystems. Here we specify the path to the logical volume. I have truncated the output on the last two commands, but it should reflect the same/similar to the first command. I have gone with an ext4 filesystem. If you would like something different, I would reccomend xfs.
 
     ```
     [terminal_blues@localhost ~]$ sudo mkfs.ext4 /dev/mapper/vglocal00-data00
@@ -317,7 +317,7 @@ For this section, you'll need to pull up powershell as per once before and power
     PS C:\> & 'K:\Program Files (x86)\Virtualbox\VBoxManage' storageattach tutorial --storagectl "SATA" --port 1 --device 0 --type hdd --medium none
     ```
 
-3. Assign the UUID of the original drive, then remove it. Note that if you are using snapshots, you may encounter some errors, as it creates child disks to track that changes which make the OS believe it is still attached. Simply skip this step, then remove the disk and snapshots when you are done with them.
+3. Assign the UUID of the original drive, then remove it. Note that if you are using snapshots, you may encounter some errors, as it creates child disks to track the changes, which make the OS believe it is still attached. Simply skip this step, then remove the disk and snapshots when you are done with them.
 
     ```
     PS C:\> $tutorial_uuid = & 'K:\Program Files (x86)\Virtualbox\VBoxManage' list hdds | select-string tutorial-01.vmdk -context 5,0 |  findstr /r UUID:.*- | %{ $_.ToString().split(':')[1]; } | %{ $_ -replace '\s',''; }
@@ -360,7 +360,7 @@ For this section, you'll need to pull up powershell as per once before and power
 
 * * *
 
-1. Power on your VM once more. Verify the new space and drop into a parted shell. It will prompt your to allocate the new space, you will accept. *Note* again - in most situations you will NOT make multiple partitions and add them as separate physical volumes, it is more sensible to break them up on the logical volume instead. The majority of the time where you would need to break up the partitions on the first layer and add them as separate PV's are when you would expand the disk, as we are doing here. The scheme we have laid out partitioning wise is purely for demonstration purposes. Ideally it would be as contiguous as possible. 
+1. Power on your VM once more. Verify the new space and drop into a parted shell. It will prompt you to allocate the new space, you will accept. *Note* again - in most situations you will NOT make multiple partitions and add them as separate physical volumes, it is more sensible to break them up on the logical volumes instead. The majority of the time where you would need to break up the partitions on the first layer and add them as separate PV's are when you would expand the disk, as we are doing here. The scheme we have laid out partitioning wise is purely for demonstration purposes. Ideally it would be as contiguous as possible. 
 
     ```
     [terminal_blues@localhost ~]$ lsblk /dev/sdb
@@ -381,7 +381,6 @@ For this section, you'll need to pull up powershell as per once before and power
 
     ```
     [terminal_blues@localhost ~]$ sudo parted /dev/sdb
-    [sudo] password for terminal_blues: 
     GNU Parted 3.2.153
     Using /dev/sdb
     Welcome to GNU Parted! Type 'help' to view a list of commands.
@@ -400,7 +399,7 @@ For this section, you'll need to pull up powershell as per once before and power
      2      5369MB  10.7GB  5369MB               diskb02  lvm
      3      10.7GB  15.7GB  4990MB               diskb03  lvm
     ```
-3. Since we are expanding, I prefer to look at the sectors and look from there. Change the unit, then create a partition. This step is the most crucial - the starting point MUST be exactly 1 sector after where the last sector ends. In our case the last sector is on the 3rd partition at `30747951` - therefore, our start sector must be at `30747952`.
+3. Since we are expanding, I prefer to look at the sectors and partitin from there. Change the unit, then create a partition. This step is the most crucial - the starting point MUST be exactly 1 sector after where the last sector ends. In our case the last sector is on the 3rd partition at `30747951` - therefore, our start sector must be at `30747952`.
 
     ```
     (parted) unit s
