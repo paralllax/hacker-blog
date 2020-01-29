@@ -1,6 +1,6 @@
 ---
 title: LVM Lab Setup With VirtualBox
-published: false
+published: true
 ---
 
 * * *
@@ -24,9 +24,9 @@ If you are unfamiliar with Logical Volume Management (LVM), it is another way to
 
 ### [](#header-snapshot)Take a Snapshot<a name="snapshot"></a>
 
-Let's get right into it. For the lab, in order to attach and detach disks, the VM needs to be powered off. Please be certain your VM is powered off now. First you will need to run powershell as an administrator. Hit the windows key, type in powershell, right click it, and run it as administrator as per below.
+Let's get right into it. For the lab, in order to attach and detach disks, the VM needs to be powered off. Please be certain your VM is powered off now. First you will need to run powershell as an administrator. Hit the windows key, type in powershell, right click it, and run it as administrator as per below. Note that the path to the binary for VBoxManage will vary depending on the directory you installed Virtual Box. Using tab to autocomplete is very handy, and will work in powershell. 
 
-You can skip this part if needed, but in case you are worried about messing up and want to revert in that event, we'll go ahead and take a snapshot of our VM. Note that if the machine is powered on, you will include the `--live` flag at the end of the command, otherwise, leave it out. With the two command below, you can see demonstration of this. The second command lists our snapshots. I have 2 in my list, the second in the list, is the one just created. 
+You can skip this part if needed, but in case you are worried about messing up and want to revert in that event, we'll go ahead and take a snapshot of our VM. Note that if the machine is powered on, you will include the `--live` flag at the end of the command, otherwise, leave it out. With the two commands below, you can see demonstration of this. The second command lists our snapshots. I have 2 in my list, the second in the list, is the one just created. Alternatively, you can create a clone as well, if you plan on expanding disks, it may be easier to work with a clone, as snapshots can get messy from the cli perspective when trying to unattach and delete disks.
 
 ```
 PS C:\> & 'K:\Program Files (x86)\Virtualbox\VBoxManage' snapshot tutorial take original_predisk_01 --description="The original state of our machine before we begin the lab" --live
@@ -53,17 +53,16 @@ PS C:\>
 
 ### [](#header-create)Create & Attach the Virtual Disk<a name="attach"></a>
 
-With a restore point in hand, we can go ahead and jump into creating the vdisk. In the terminal we will create and attach another disk. Note that the path to the binary for VBoxManage will vary depending on the directory you installed Virtual Box. Using tab to autocomplete is very handy, and will work in powershell. 
+With a restore point in hand, we can go ahead and jump into creating the vdisk. In the terminal we will create and attach another disk. This first command will create a 15G virtual disk. The second command will attach the disk to you VM. You may need to adjust the location of where to create the vmdk. You can put it anywhere you like. I would suggset creating a dedicated folder. I've pasted them below along with the output. Note that if came back here after restoring from a snapshot, you only need to run the second command. 
 
-This first command will create a 15G virtual disk. The second command will attach the disk to you VM. You may need to adjust the location of where to create the vmdk. You can put it anywhere you like. I would suggset creating a dedicated folder. I've pasted them below along with the output. Note that if came back here after restoring from a snapshot, you only need to run the second command. 
+```
+PS C:\> & 'K:\Program Files (x86)\Virtualbox\VBoxManage' createhd --filename K:\VMs\vdisks\vdisk-tutorial-01.vmdk --size 15000 --format VMDK
+0%...10%...20%...30%...40%...50%...60%...70%...80%...90%...100%
+Medium created. UUID: c41f2662-a8aa-4d5a-b3af-029c9fa38905
+PS C:\> & 'K:\Program Files (x86)\Virtualbox\VBoxManage' storageattach tutorial --storagectl "SATA" --port 1 --device 0 --type hdd --medium K:\VMs\vdisks\vdisk-tutorial-01.vmdk
+PS C:\>
+```
 
-    ```
-    PS C:\> & 'K:\Program Files (x86)\Virtualbox\VBoxManage' createhd --filename K:\VMs\vdisks\vdisk-tutorial-01.vmdk --size 15000 --format VMDK
-    0%...10%...20%...30%...40%...50%...60%...70%...80%...90%...100%
-    Medium created. UUID: c41f2662-a8aa-4d5a-b3af-029c9fa38905
-    PS C:\> & 'K:\Program Files (x86)\Virtualbox\VBoxManage' storageattach tutorial --storagectl "SATA" --port 1 --device 0 --type hdd --medium K:\VMs\vdisks\vdisk-tutorial-01.vmdk
-    PS C:\>
-    ```
 * * *
 
 ### [](#header-part)Partition the Virtual Disk<a name="partition"></a>
@@ -193,11 +192,9 @@ This first command will create a 15G virtual disk. The second command will attac
 2. Here we create the first layer, the physical volumes. These are the partitions we created, and are evetnually added to a volume group. We will use a metadata-size of 250k. These are the raw material in LVM we will use to build our filesystem. You can see they now show up as physical volumes, but are missing a volume group.
 
     ```
-    [terminal_blues@localhost ~]$ sudo pvcreate --metadata-size 250k /dev/sdb1
+    [terminal_blues@localhost ~]$ sudo pvcreate --metadata-size 250k /dev/sdb1 /dev/sdb2 /dev/sdb3
       Physical volume "/dev/sdb1" successfully created.
-    [terminal_blues@localhost ~]$ sudo pvcreate --metadata-size 250k /dev/sdb2
       Physical volume "/dev/sdb2" successfully created.
-    [terminal_blues@localhost ~]$ sudo pvcreate --metadata-size 250k /dev/sdb3
       Physical volume "/dev/sdb3" successfully created.
     [terminal_blues@localhost ~]$ sudo pvs
       PV         VG                    Fmt  Attr PSize   PFree 
@@ -207,16 +204,12 @@ This first command will create a 15G virtual disk. The second command will attac
       /dev/sdb3                        lvm2 a--    4.64g  4.64g
     ```
 
-2. Next we will create a new volume group, it may be easier to think of it of more as a storage pool, partitions and other disks can be stitched together and added here. As a note, you should next mix the underlying datastores in volume groups. In other words, if you have a virtual disk /dev/sdb from one hard drive, and /dev/sdc from another, they should not go into the same voluem group as the filesystem will then write to different disks, and may have severe I/O issues. You can add as many disks from the physical volumes as you would like. 
+2. Next we will create a new volume group, it may be easier to think of it of more as a storage pool, partitions and other disks can be stitched together and added here. As a note, you should never mix the underlying datastores in volume groups. In other words, if you have a virtual disk /dev/sdb from one hard drive, and /dev/sdc from another, they should not go into the same voluem group as the filesystem will then write to different disks, and may have severe I/O issues. You can add as many disks from the physical volumes as you would like. 
 
     ```
     [terminal_blues@localhost ~]$ sudo vgcreate vglocal00 /dev/sdb1 /dev/sdb2 /dev/sdb3
       Volume group "vglocal00" successfully created
-    [terminal_blues@localhost ~]$ vgs
-      WARNING: Running as a non-root user. Functionality may be unavailable.
-      /run/lock/lvm/P_global:aux: open failed: Permission denied
-    [terminal_blues@localhost ~]$ sudo !!
-    sudo vgs
+    [terminal_blues@localhost ~]$ sudo vgs
       VG                    #PV #LV #SN Attr   VSize   VFree  
       fedora_localhost-live   1   2   0 wz--n- <19.00g      0 
       vglocal00               3   0   0 wz--n- <14.64g <14.64g
@@ -276,12 +269,12 @@ This first command will create a 15G virtual disk. The second command will attac
     [terminal_blues@localhost ~]$ 
     ```
 
-3. With your preferred text editor, open and update /etc/fstab with the new filesystems. fstab is read on boot, it tells the system where to mount filesystems. Add the following three lines, then mount. The `-v` flag is for verbose, the `-a` flag is for all. It reads fstab, and attempts to mount any unmounted filesystems.
+3. With your preferred text editor, open and update /etc/fstab with the new filesystems. fstab is read on boot, it tells the system where to mount filesystems. Add the following three lines, then mount. The `-v` flag is for verbose, the `-a` flag is for all. It reads fstab, and attempts to mount any unmounted filesystems. If you have never used vim and would like to, when you enter the file press `i` to insert text. When you are done press the `Esc` key, then type `:wq` and hit enter. `:` lets you type vim commands, `w` means write the file, `q` means quit. 
 
     ```
     [terminal_blues@localhost ~]$ sudo vim /etc/fstab
     [terminal_blues@localhost ~]$ tail -3 /etc/fstab
-    /dev/mapper/vglocal00-data00        /data        ext4    defaults        1 2
+    /dev/mapper/vglocal00-data00        /data            ext4    defaults        1 2
     /dev/mapper/vglocal00-terminal00    /terminal        ext4    defaults        1 2
     /dev/mapper/vglocal00-blues00       /blues           ext4    defaults        1 2
     [terminal_blues@localhost ~]$ sudo mount -av
@@ -367,6 +360,151 @@ For this section, you'll need to pull up powershell as per once before and power
 
 * * *
 
+1. Power on your VM once more. Verify the new space and drop into a parted shell. It will prompt your to allocate the new space, you will accept. *Note* again - in most situations you will NOT make multiple partitions and add them as separate physical volumes, it is more sensible to break them up on the logical volume instead. The majority of the time where you would need to break up the partitions on the first layer and add them as separate PV's are when you would expand the disk, as we are doing here. The scheme we have laid out partitioning wise is purely for demonstration purposes. Ideally it would be as contiguous as possible. 
 
+    ```
+    [terminal_blues@localhost ~]$ lsblk /dev/sdb
+    NAME                     MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+    sdb                        8:16   0 24.4G  0 disk 
+    ├sdb1                     8:17   0    5G  0 part 
+    │ └vglocal00-data00     253:2    0    5G  0 lvm  /data
+    ├sdb2                     8:18   0    5G  0 part 
+    │ ├vglocal00-data00     253:2    0    5G  0 lvm  /data
+    │ └vglocal00-terminal00 253:3    0    5G  0 lvm  /terminal
+    └sdb3                     8:19   0  4.7G  0 part 
+      ├vglocal00-terminal00 253:3    0    5G  0 lvm  /terminal
+      └vglocal00-blues00    253:4    0  4.7G  0 lvm  /blues
+    
+    ```
 
+2. As mentioned above, since the disk has changed, we need to fix the table to allocate the new space. When you launch the parted shell, it will prompt you to fix, in which case you will. 
 
+    ```
+    [terminal_blues@localhost ~]$ sudo parted /dev/sdb
+    [sudo] password for terminal_blues: 
+    GNU Parted 3.2.153
+    Using /dev/sdb
+    Welcome to GNU Parted! Type 'help' to view a list of commands.
+    (parted) print                                                            
+    Warning: Not all of the space available to /dev/sdb appears to be used, you can fix the GPT to use all of the space (an extra
+    20480000 blocks) or continue with the current setting? 
+    Fix/Ignore? Fix
+    Model: ATA VBOX HARDDISK (scsi)
+    Disk /dev/sdb: 26.2GB
+    Sector size (logical/physical): 512B/512B
+    Partition Table: gpt
+    Disk Flags: 
+    
+    Number  Start   End     Size    File system  Name     Flags
+     1      1049kB  5369MB  5368MB               diskb01  lvm
+     2      5369MB  10.7GB  5369MB               diskb02  lvm
+     3      10.7GB  15.7GB  4990MB               diskb03  lvm
+    ```
+3. Since we are expanding, I prefer to look at the sectors and look from there. Change the unit, then create a partition. This step is the most crucial - the starting point MUST be exactly 1 sector after where the last sector ends. In our case the last sector is on the 3rd partition at `30747951` - therefore, our start sector must be at `30747952`.
+
+    ```
+    (parted) unit s
+    (parted) print                                                            
+    Model: ATA VBOX HARDDISK (scsi)
+    Disk /dev/sdb: 51200000s
+    Sector size (logical/physical): 512B/512B
+    Partition Table: gpt
+    Disk Flags: 
+
+    Number  Start      End        Size       File system  Name     Flags
+     1      2048s      10485759s  10483712s               diskb01  lvm
+     2      10485760s  20971519s  10485760s               diskb02  lvm
+     3      20971520s  30717951s  9746432s                diskb03  lvm
+
+    (parted) mkpart diskb04 30717952 100%
+    (parted) print                                                            
+    Model: ATA VBOX HARDDISK (scsi)
+    Disk /dev/sdb: 51200000s
+    Sector size (logical/physical): 512B/512B
+    Partition Table: gpt
+    Disk Flags: 
+
+    Number  Start      End        Size       File system  Name     Flags
+     1      2048s      10485759s  10483712s               diskb01  lvm
+     2      10485760s  20971519s  10485760s               diskb02  lvm
+     3      20971520s  30717951s  9746432s                diskb03  lvm
+     4      30717952s  51197951s  20480000s               diskb04
+    ```
+
+4. Set the lvm tag on and align the partition, then close out of parted. 
+
+    ```
+    (parted) set 4 lvm on
+    (parted) align-check optimal 4
+    4 aligned
+    (parted) print                                                            
+    Model: ATA VBOX HARDDISK (scsi)
+    Disk /dev/sdb: 51200000s
+    Sector size (logical/physical): 512B/512B
+    Partition Table: gpt
+    Disk Flags: 
+
+    Number  Start      End        Size       File system  Name     Flags
+     1      2048s      10485759s  10483712s               diskb01  lvm
+     2      10485760s  20971519s  10485760s               diskb02  lvm
+     3      20971520s  30717951s  9746432s                diskb03  lvm
+     4      30717952s  51197951s  20480000s               diskb04  lvm
+    ```
+
+5. Create the physical volume. 
+
+    ```
+    [terminal_blues@localhost ~]$ sudo pvcreate --metadata-size 250k /dev/sdb4
+      Physical volume "/dev/sdb4" successfully created.
+    [terminal_blues@localhost ~]$ sudo pvs
+      PV         VG                    Fmt  Attr PSize   PFree
+      /dev/sda2  fedora_localhost-live lvm2 a--  <19.00g    0 
+      /dev/sdb1  vglocal00             lvm2 a--   <5.00g    0 
+      /dev/sdb2  vglocal00             lvm2 a--   <5.00g    0 
+      /dev/sdb3  vglocal00             lvm2 a--    4.64g    0 
+      /dev/sdb4  vglocal00             lvm2 a--    9.76g 9.76g
+    ```
+
+6. Add the physical volume to our volume group. 
+
+    ```
+    [terminal_blues@localhost ~]$ sudo vgextend vglocal00 /dev/sdb4
+      Volume group "vglocal00" successfully extended
+    [terminal_blues@localhost ~]$ sudo vgs
+      VG                    #PV #LV #SN Attr   VSize   VFree
+      fedora_localhost-live   1   2   0 wz--n- <19.00g    0 
+      vglocal00               4   3   0 wz--n- <24.40g 9.76g
+    ```
+
+7. Extend the logical volume.
+
+    ```
+    [terminal_blues@localhost ~]$ sudo lvextend -l +100%FREE /dev/mapper/vglocal00-data00
+      Size of logical volume vglocal00/data00 changed from 5.00 GiB (1280 extents) to 14.76 GiB (3779 extents).
+      Logical volume vglocal00/data00 successfully resized.
+    [terminal_blues@localhost ~]$ sudo lvs
+      LV         VG                    Attr       LSize   Pool Origin Data%  Meta%  Move Log Cpy%Sync Convert
+      root       fedora_localhost-live -wi-ao---- <17.00g                                                    
+      swap       fedora_localhost-live -wi-ao----   2.00g                                                    
+      blues00    vglocal00             -wi-ao----  <4.64g                                                    
+      data00     vglocal00             -wi-ao----  14.76g                                                    
+      terminal00 vglocal00             -wi-ao----   5.00g   
+    ```
+
+8. Now we resize the filesystem online in the OS. Otherwise, the system will not recognize the new space. Note that with larger filesystems that have a high number of inodes, the operation could take a while. For instance, a 15Tb filesysem, with 80% inodes could show an increase in I/O and take anywhere from 5 minutes, to 30 minutes depending on your speeds. In other words, if it's large, and this is a production machine, there is lots of I/O activity already, and the operation can wait, do it off hours. In most cases, it won't matter, but it never hurts to be safe than sorry. If you are using something other than ext4, such as xfs, you may need to use another command, such as `xfs_growfs`. 
+
+    ```
+    [terminal_blues@localhost ~]$ sudo resize2fs /dev/mapper/vglocal00-data00
+    resize2fs 1.45.3 (14-Jul-2019)
+    Filesystem at /dev/mapper/vglocal00-data00 is mounted on /data; on-line resizing required
+    old_desc_blocks = 1, new_desc_blocks = 2
+    The filesystem on /dev/mapper/vglocal00-data00 is now 3869696 (4k) blocks long.
+
+    [terminal_blues@localhost ~]$ df -hP /data
+    Filesystem                    Size  Used Avail Use% Mounted on
+    /dev/mapper/vglocal00-data00   15G   25M   14G   1% /data
+    ```
+
+As you can see, our filesystem is now 15G from 5G. Odds are, in a dedicated enterprise environemnt, you will use ESXi or some other hypervisor, which typically has the capability to hot add drives and expansions. This benefit is enhanced with LVM as the expansion and resizing can be done while the server is online. 
+
+If you're read this far, this concludes the tutorial. If you have any questions feel free to hit me up on one of my socials linked in the about page. Thanks
