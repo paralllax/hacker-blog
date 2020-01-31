@@ -46,7 +46,7 @@ $ source ~/.bashrc
 Next begin the setup with the following command to configure the oci cli for your account. It will walk you through where to find the required information. (Very simple, require's 2 ID's from your account and the region)
 
 ```bash
-$ oci config setup
+$ oci setup config
 ```
 
 For simplicity, we will add a few more configurations such as the default compartment for oci. First we need to locate the OCID for the compartment. In the Oracle Cloud Console, click the top left three bars, and scroll to the bottom where it says 'Identify' and click 'Compartments'.
