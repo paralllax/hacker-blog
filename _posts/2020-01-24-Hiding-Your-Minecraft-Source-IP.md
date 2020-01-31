@@ -136,7 +136,7 @@ Arch:   sudo pacman -Sy jq
     -   /bin/firewall-cmd --add-service=ssh --permanent --zone=public
     -   /bin/firewall-cmd --reload
     -   /bin/semanage port -a -t http_port_t -p tcp 25565
-    -   /bin/sed -i 's/\(^ExecStart=\/usr\/sbin\/sslh\).*/\1 --user sslh --listen 0.0.0.0:25565 --anyprot {HOST IP HERE}:60000 --pidfile /var/run/sslh.pid' /usr/lib/systemd/system/sslh.service
+    -   /bin/sed -i 's/\(^ExecStart=\/usr\/sbin\/sslh\).*/\1 --user sslh --listen 0.0.0.0:25565 --anyprot {HOST IP HERE}:60000 --pidfile \/var\/run\/sslh.pid/' /usr/lib/systemd/system/sslh.service
     -   /bin/sed -i 's/\(^Environ.*\)/#\1/' /usr/lib/systemd/system/sslh.service
     -   /bin/systemctl daemon-reload
     -   /bin/systemctl enable sslh
