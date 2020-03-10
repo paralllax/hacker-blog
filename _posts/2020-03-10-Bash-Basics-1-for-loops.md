@@ -102,9 +102,11 @@ $ for device in $(ls /sys/devices/virtual/net/); do ip -o -f inet addr show ${de
 
 Here we declare an indexed array called `my_fruit`, we load it with our fruit, then iterate through each item. `[@]` is used to expand positional parameters. In other words, it displays everything in our array. The command, more literally translated reads: `for fruit in apple orange banana...`.
 
+As a reader pointed out, you should get in the habbit of quoting your variables. Particularly if your variable contains a space, special characters, or is empty. This can otherwise lead to all sorts of issues, such as breaking the variables apart, or matching more items than you intially wanted (wildcards). If you are worried about your syntax there are great tools such as [shellcheck](https://github.com/koalaman/shellcheck). 
+
 ```bash
 $ my_fruit=(apple orange banana pear grapes)
-$ for fruit in ${my_fruit[@]}; do echo "I will eat (an): ${fruit}"; done
+$ for fruit in "${my_fruit[@]}"; do echo "I will eat (an): ${fruit}"; done
 I will eat (an): apple
 I will eat (an): orange
 I will eat (an): banana
