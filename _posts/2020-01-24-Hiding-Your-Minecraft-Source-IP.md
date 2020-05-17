@@ -222,8 +222,8 @@ $ sudo firewall-cmd --permanent --zone=public --add-rich-rule='rule family="ipv4
 $ sudo firewall-cmd --reload
 
 Iptables: 
-$ sudo iptables -I INPUT -p tcp -s xxx.xxx.xxx.xxx/32 --dport 25565 -j DROP
-$ sudo iptables -I INPUT -p udp -s xxx.xxx.xxx.xxx/32 --dport 25565 -j DROP
+$ sudo iptables -I INPUT -p tcp -s xxx.xxx.xxx.xxx/32 --dport 25565 -j ACCEPT
+$ sudo iptables -I INPUT -p udp -s xxx.xxx.xxx.xxx/32 --dport 25565 -j ACCEPT
 
 UFW:
 $ sudo ufw allow from xxx.xxx.xxx.xxx/32 proto tcp to any port 25565
