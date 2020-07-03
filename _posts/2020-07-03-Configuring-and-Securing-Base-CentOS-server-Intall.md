@@ -29,7 +29,9 @@ getenforce
 
 If it is not enabled, you can enable it by editing the file `/etc/selinux/config`. When you are editing the file, change `SELINUX=disabled` to `SELINUX=enforcing`. You will then reboot and check again with `getenforce`
 
-`reboot`
+```
+reboot
+```
 
 * * *
 
