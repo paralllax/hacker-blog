@@ -4,7 +4,7 @@ published: true
 ---
 
 * * *
-This is a quick reference text based guide in place of the video I created on my youtube [here](). I won't go over as many of the details, this is more if you want the information quick and dirty without all the long winded talking. If you do have questions though, feel free to ask on one of my socials or on the comment section of the video. This will be centered around CentOS 7.
+This is a quick reference text based guide in place of the video I created on my youtube [here](https://youtu.be/Rv2D1H6IQes). I won't go over as many of the details, this is more if you want the information quick and dirty without all the long winded talking. If you do have questions though, feel free to ask on one of my socials or on the comment section of the video. This will be centered around CentOS 7.
 
 ## Index
 
