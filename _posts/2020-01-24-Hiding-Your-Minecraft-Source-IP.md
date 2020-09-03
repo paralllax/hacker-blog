@@ -88,28 +88,29 @@ Arch:   sudo pacman -Sy jq
 1. Create a virtual cloud network (vcn). Then we assign the ID of that network to a variable, as we will be calling it a lot more down the line.
 
     ```bash
-    $ oci network vcn create --cidr-block 172.168.0.0/24 --display-name MinecraftVCN --dns-label MineVCN
+    $ OCID=$(oci iam compartment get --output table --query "data.{CompartmentName:\"name\"}")
+    $ oci network vcn create -c ${OCID} --cidr-block 172.168.0.0/24 --display-name MinecraftVCN --dns-label MineVCN
     $ VCN_OCID=$(oci network vcn list | jq -r '.data[].id')
     ```
 
 2. Now we will create a new security list, this will allow traffic on port 25565/TCP and 22/TCP to the server. It will also allow the server to communicate out on the exnet. We then assign the ID to a variable.
 
     ```bash
-    $ oci network security-list create --display-name minesubnet --vcn-id ${VCN_OCID} --egress-security-rules '[{"destination": "0.0.0.0/0", "destination-type": "CIDR_BLOCK", "protocol": "all", "isStateless": false}]' --ingress-security-rules '[{"source": "0.0.0.0/0", "source-type": "CIDR_BLOCK", "protocol": 6, "isStateless": false, "tcp-options": {"destination-port-range": {"max": 25565, "min": 25565}}},{"source": "0.0.0.0/0", "source-type": "CIDR_BLOCK", "protocol": 6, "isStateless": false, "tcp-options": {"destination-port-range": {"max": 22, "min": 22}}}]'
+    $ oci network security-list create --display-name minesubnet --vcn-id ${VCN_OCID} -c ${OCID} --egress-security-rules '[{"destination": "0.0.0.0/0", "destination-type": "CIDR_BLOCK", "protocol": "all", "isStateless": false}]' --ingress-security-rules '[{"source": "0.0.0.0/0", "source-type": "CIDR_BLOCK", "protocol": 6, "isStateless": false, "tcp-options": {"destination-port-range": {"max": 25565, "min": 25565}}},{"source": "0.0.0.0/0", "source-type": "CIDR_BLOCK", "protocol": 6, "isStateless": false, "tcp-options": {"destination-port-range": {"max": 22, "min": 22}}}]'
     $ SL_ID=$(oci network security-list list --vcn-id=${VCN_OCID} | jq -r '.data[].id')
     ```
 
 3. Now we will create a public subnet. You have the option to add up to 5 security lists and a custom route table. Here we will assign the security list we just create and let the system associate with the default route table. 
 
     ```bash
-    $ oci network subnet create --cidr-block 172.168.4.0/24 --vcn-id ${VCN_OCID} --security-list-ids "[\"${SL_ID}\"]"
+    $ oci network subnet create --cidr-block 172.168.4.0/24 -c ${OCID} --vcn-id ${VCN_OCID} --security-list-ids "[\"${SL_ID}\"]"
     $ SN_ID=$(oci network subnet list --vcn-id ${VCN_OCID} | jq -r '.data[].id')
     ```
 
 4. Next create the gateway. This can be disabled/enabled to control whether the instances in the segment can access the inernet. It is created inside the VNC.
 
     ```bash
-    $ oci network internet-gateway create --is-enabled true --vcn-id ${VCN_OCID} --display-name MineGW
+    $ oci network internet-gateway create -c ${OCID} --is-enabled true --vcn-id ${VCN_OCID} --display-name MineGW
     $ GW_ID=$(oci network internet-gateway list --vcn-id ${VCN_OCID} | jq -r '.data[].id')
     ```
 
