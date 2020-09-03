@@ -5,7 +5,7 @@ ipublished: true
 
 * * *
 
-This will be a brief overview of RPM and what it is. There will be a few examples, followed by scenarios with issues you may come across frequently. This should be a sufficient introduction to get you comfortable with rpm. Note this will not include installing and uninstalling packages, as there are a million guides on that. Rather we will touch on some of the other basics uses and features that are, at times, overlooked.
+This will be a brief, no frills, overview of RPM and what it is. There will be a few examples, followed by scenarios with issues you may come across frequently. This should be a sufficient introduction to get you comfortable with rpm. Note this will not include installing and uninstalling packages, as there are a million guides on that. Rather we will touch on some of the other basics uses and features that are, at times, overlooked.
 
 ## Index
 
@@ -128,7 +128,7 @@ getent group ssh_keys >/dev/null || groupadd -r ssh_keys || :
 
 ### Common Issues<a name="issue"><a/>
 
-Fix a corrupted rpm database.
+Here is how you would fix a corrupted rpm database. This is probably the most common issue you will run into.
 
 ```
 [root@tartarus rpm]# rpm -qa
@@ -144,7 +144,7 @@ error: cannot open Packages database in /var/lib/rpm
 BDB5105 Verification of Packages succeeded.
 ```
 
-If `Packages` is broken, and absolutely nothing else you know of is working, and it's all messed up, take a backup, build it from scratch, recover, reimport, verify. Then CHECK if rpm/yum are OK. If not, see below.
+Another scenario. You have tried the above steps, but instead of verification succeeding, `Packages` is still broken, and absolutely nothing else you know of is working.  'Packages' is the master package metadata file. You will need to take a backup, rebuild the rpmdb from scratch, recover, reimport, and then verify. Then CHECK if rpm/yum are OK. If not, see below.
  
 ```
 [root@tartarus ~]# /usr/lib/rpm/rpmdb_verify /var/lib/rpm/Packages
@@ -181,7 +181,9 @@ total size is 5,844,998  speedup is 1.00
 BDB5105 Verification of /var/lib/rpm/Packages succeeded.
 ```
 
-If it is still broken (rpm -qa returns nothing/ yum is broken) Only then proceed - Even then, you may want to consider rebuilding the server. Note this is for rhel 7.X, your mileage will vary on other releases. Additionally note - I don't know if this is an "accepted" solution. This simply worked for me. If this is rhel 4,5,6 - [try this redhat solution first.](https://access.redhat.com/solutions/23743)
+If it is still broken (rpm -qa returns nothing / yum is broken) Only then proceed - Even then, you may want to consider rebuilding the server and file a bug report with rpm as the next steps may leave your server in an inconsistent state. Note this is for rhel 7.X, your mileage will vary on other releases. Additional note - I don't know if this is an "accepted" solution. This simply worked for me. If this is rhel 4,5,6 - [try this redhat solution first.](https://access.redhat.com/solutions/23743)
+
+re-import all of the gpg-keys and reset the environment variables for yum.
 
 ```
 [root@tartarus rpmdb-indexes]# rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-*
@@ -191,7 +193,7 @@ If it is still broken (rpm -qa returns nothing/ yum is broken) Only then proceed
 [root@tartarus rpmdb-indexes]# echo $ARCH > /etc/yum/vars/arch
 ```
 
-If yum is still broken - try setting the following, note the number would probably change.
+If yum is still broken - try setting the following directive in the given file, note the releaseserver number would probably change depending on your platform.
 
 
 `file: /usr/lib/python2.X/site-packages/yum/config.py`
@@ -216,14 +218,13 @@ The previous will likely miss a few packages, check with the below.
 [root@tartarus rpmdb-indexes]# for i in $(grep '^No ' reinstall.log | awk '{print $3}'); do grep $i packages.list ; done
 ```
 
-At the end, the rpm database should be repopulated. Verify the packages as well. Please note however, there are some likely untracked packages. If they were installed and weren't in the cache, they'll be on the system, but not in the rpm database.
+At the end, the rpm database should be repopulated. Verify the packages as well. Please note however, there are some likely untracked packages. If they were installed outside of yum or weren't in the cache from earlier, they'll be on the system, but not in the rpm database.
 
 ```
 [root@tartarus rpmdb-indexes]# rpm -qa | wc -l
 580
 [root@tartarus rpmdb-indexes]# rpm -Va
 ```
-
 
 * * *
 
